@@ -1,0 +1,56 @@
+{
+  "eve": {
+    "host": "10.0.53.34",
+    "username": "evebuilder",
+    "https": false
+  },
+  "lab": {
+    "name": "branch_lab",
+    "description": "Automated Branch Network Lab",
+    "path": "/"
+  },
+  "nodes": [
+    {
+      "name": "CORE-R01",
+      "image": "x86_64_crb_linux-adventerprisek9-ms.bin",
+      "ethernet": 2,
+      "left": 150,
+      "top": 100
+    },
+    {
+      "name": "BRANCH-R01",
+      "image": "x86_64_crb_linux-adventerprisek9-ms.bin",
+      "ethernet": 2,
+      "left": 500,
+      "top": 100
+    },
+    {
+      "name": "BRANCH-SW01",
+      "image": "x86_64_crb_linux_l2-adventerprisek9-ms.bin",
+      "ethernet": 4,
+      "left": 500,
+      "top": 300
+    }
+  ],
+  "links": [
+    {
+      "source": "CORE-R01",
+      "source_interface": "e0/0",
+      "destination": "BRANCH-R01",
+      "destination_interface": "e0/0"
+    },
+    {
+      "source": "BRANCH-R01",
+      "source_interface": "e0/1",
+      "destination": "BRANCH-SW01",
+      "destination_interface": "e0/0"
+    }
+  ],
+  "texts": [
+    {
+      "text": "WAN Connection",
+      "left": 300,
+      "top": 70
+    }
+  ]
+}

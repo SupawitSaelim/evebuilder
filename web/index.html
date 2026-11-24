@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>EVE Lab Builder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="#start"><span class="brand-mark" aria-hidden="true"></span>EVE Lab Builder</a>
+  <nav class="nav" id="nav" aria-label="เมนูหลัก">
+    <a href="#start" data-view="start">เริ่มต้น</a>
+    <a href="#design" data-view="design">ออกแบบ</a>
+    <a href="#deploy" data-view="deploy">สร้าง lab</a>
+    <a href="#labs" data-view="labs">Lab ที่มีอยู่</a>
+    <a href="#connect" data-view="connect">เชื่อมต่อ</a>
+    <span class="nav-stats" id="navStats" title="ใช้งานเครื่อง EVE-NG (อัปเดตทุก 30 วินาที)" hidden>
+      <span>CPU <b id="statCpu">–</b></span><span>MEM <b id="statMem">–</b></span>
+    </span>
+    <a href="#connect" id="navEve" class="nav-external" target="_blank" rel="noopener noreferrer">EVE-NG
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+    </a>
+  </nav>
+  <div class="topbar-right">
+    <a class="status-pill" id="statusPill" href="#connect" data-state="idle"><span class="dot"></span><span id="statusText">ยังไม่ได้ทดสอบการเชื่อมต่อ</span></a>
+    <button class="icon-btn" id="btnLogs" type="button" aria-label="บันทึกการทำงาน" title="บันทึกการทำงาน">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      <span class="new-dot" hidden></span>
+    </button>
+  </div>
+</header>
+
+<div id="pwBanner" class="global-banner" hidden>ยังไม่ได้ตั้ง <code>EVE_PASSWORD</code> ในไฟล์ <code>.env</code> ปุ่มที่ต้องเชื่อมต่อ EVE-NG จะใช้ไม่ได้จนกว่าจะตั้งค่าแล้วรันโปรแกรมใหม่</div>
+<div id="draftBanner" class="global-banner draft-banner" hidden>
+  <span id="draftText">พบงานออกแบบที่ยังไม่ได้สร้างเป็น lab</span>
+  <button class="btn primary sm" id="btnDraftRestore" type="button">กู้คืน</button>
+  <button class="btn ghost sm" id="btnDraftDiscard" type="button">ทิ้ง</button>
+</div>
+
+<main class="container">
+
+  <!-- ───────── เริ่มต้น ───────── -->
+  <section class="view" id="view-start">
+    <div class="hero">
+      <p class="eyebrow">EVE-NG · Cisco IOL</p>
+      <h1>จากโจทย์ เป็น Lab<br>ในไม่กี่นาที</h1>
+      <p class="lead">ให้ AI อ่านรูปโจทย์ แล้วนำคำตอบมาวางที่นี่<br>ระบบจะสร้างผังให้ ตรวจสอบ และสร้าง lab บน EVE-NG</p>
+    </div>
+
+    <ol class="steps">
+      <li class="card step" id="step1">
+        <span class="step-no">1</span>
+        <h2>คัดลอก prompt</h2>
+        <p>เปิด AI ที่คุณใช้ (ChatGPT, Copilot ฯลฯ) วาง prompt นี้ แล้วแนบรูปโจทย์ตามไป</p>
+        <div class="btn-row">
+          <button class="btn primary" id="btnCopyPrompt" type="button">คัดลอก prompt</button>
+          <button class="btn ghost" id="btnShowPrompt" type="button">ดู prompt</button>
+        </div>
+      </li>
+
+      <li class="card step" id="step2">
+        <span class="step-no">2</span>
+        <h2>วางคำตอบจาก AI</h2>
+        <p>AI จะตอบเป็น JSON คัดลอกทั้งหมดมาวางที่นี่ หรือเลือกไฟล์ <code>.json</code> / <code>.txt</code></p>
+        <textarea id="importText" rows="8" spellcheck="false" placeholder='{ "nodes": [ ... ], "links": [ ... ] }'></textarea>
+        <div class="btn-row">
+          <label class="btn secondary file-btn">เลือกไฟล์<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden></label>
+          <button class="btn ghost" id="btnSample" type="button">ลองใช้ตัวอย่าง</button>
+        </div>
+      </li>
+
+      <li class="card step" id="step3">
+        <span class="step-no">3</span>
+        <h2>นำเข้า</h2>
+        <p>ระบบแปลงเป็นฟอร์ม แล้วพาไปหน้า <strong>ออกแบบ</strong> เพื่อดูผังและแก้ไขก่อนสร้างจริง</p>
+        <div class="btn-row">
+          <button class="btn primary" id="btnParse" type="button" disabled>นำเข้า →</button>
+        </div>
+        <p class="hint">หรือกด <kbd>Ctrl</kbd> + <kbd>Enter</kbd> ในช่องวางคำตอบ</p>
+      </li>
+    </ol>
+
+    <div class="alt-paths">
+      <a href="#design">ออกแบบเองตั้งแต่ต้น <span aria-hidden="true">→</span></a>
+      <a href="#labs">เปิด lab ที่มีอยู่แล้ว <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+
+  <!-- ───────── ออกแบบ ───────── -->
+  <section class="view" id="view-design" hidden>
+    <div class="page-head">
+      <h1>ออกแบบ</h1>
+      <p>แก้อุปกรณ์ การเชื่อมต่อ และข้อความ ผังด้านขวาอัปเดตให้ทันที</p>
+    </div>
+
+    <div class="notice" id="notice" hidden>
+      <div class="notice-body"><strong id="noticeTitle"></strong><ul id="noticeList"></ul></div>
+      <button class="btn ghost sm" id="noticeClose" type="button">ปิด</button>
+    </div>
+
+    <div class="design-grid">
+      <div class="design-left">
+        <div class="card lab-card">
+          <label class="field">ชื่อ lab<input id="labName" autocomplete="off"></label>
+          <label class="field narrow">โฟลเดอร์<input id="labDir" value="/" autocomplete="off"></label>
+          <label class="field grow">คำอธิบาย<input id="labDesc" autocomplete="off"></label>
+        </div>
+
+        <div class="segmented" role="tablist" aria-label="ส่วนของ lab">
+          <button type="button" role="tab" class="on" id="tab-nodes" data-seg="nodes" aria-selected="true" aria-controls="seg-nodes">อุปกรณ์<span class="count" id="countNodes">0</span></button>
+          <button type="button" role="tab" id="tab-links" data-seg="links" aria-selected="false" aria-controls="seg-links" tabindex="-1">การเชื่อมต่อ<span class="count" id="countLinks">0</span></button>
+          <button type="button" role="tab" id="tab-texts" data-seg="texts" aria-selected="false" aria-controls="seg-texts" tabindex="-1">ข้อความ<span class="count" id="countTexts">0</span></button>
+        </div>
+
+        <div class="card editor" id="seg-nodes" role="tabpanel" aria-labelledby="tab-nodes">
+          <table class="grid-table" style="--cols: 1.6fr 1.4fr 2.1fr .7fr 128px">
+            <thead><tr><th>ชื่อ</th><th>ชนิด</th><th>Image</th><th>กลุ่มพอร์ต</th><th></th></tr></thead>
+            <tbody id="nodes"></tbody>
+          </table>
+          <p class="hint">กลุ่มพอร์ต 1 กลุ่ม = 4 พอร์ต เช่น 2 กลุ่ม ได้ e0/0–e0/3 และ e1/0–e1/3 ส่วน PC มีพอร์ตเดียวคือ eth0 · ปุ่ม <b>Config</b> ใส่คำสั่งตั้งต้นที่ระบบจะโหลดให้ตอนเปิดเครื่องครั้งแรก · <b>⧉</b> คัดลอกแถว</p>
+          <div class="btn-row editor-actions">
+            <button class="btn secondary sm" id="addNode" type="button">+ เพิ่มอุปกรณ์</button>
+            <button class="btn ghost sm" id="addBulk" type="button">+ เพิ่มหลายเครื่อง…</button>
+          </div>
+          <datalist id="images">
+            <option value="x86_64_crb_linux-adventerprisek9-ms.bin">
+            <option value="x86_64_crb_linux_l2-adventerprisek9-ms.bin">
+          </datalist>
+        </div>
+
+        <div class="card editor" id="seg-links" role="tabpanel" aria-labelledby="tab-links" hidden>
+          <table class="grid-table" style="--cols: 1.5fr 1fr 1.5fr 1fr auto">
+            <thead><tr><th>จาก</th><th>พอร์ต</th><th>ถึง</th><th>พอร์ต</th><th></th></tr></thead>
+            <tbody id="links"></tbody>
+          </table>
+          <p class="hint">เลือกพอร์ตจากรายการ พอร์ตที่สายเส้นอื่นใช้แล้วจะเลือกไม่ได้ ถ้าพอร์ตไม่พอให้เพิ่ม "กลุ่มพอร์ต" ของอุปกรณ์นั้น</p>
+          <button class="btn secondary sm" id="addLink" type="button">+ เพิ่มการเชื่อมต่อ</button>
+        </div>
+
+        <div class="card editor" id="seg-texts" role="tabpanel" aria-labelledby="tab-texts" hidden>
+          <table class="grid-table" style="--cols: 1fr auto">
+            <thead><tr><th>ข้อความบน canvas (ขึ้นบรรทัดใหม่ได้ เช่น IP หรือหมายเหตุ)</th><th></th></tr></thead>
+            <tbody id="texts"></tbody>
+          </table>
+          <button class="btn secondary sm" id="addText" type="button">+ เพิ่มข้อความ</button>
+        </div>
+      </div>
+
+      <aside class="design-right">
+        <div class="card preview-card">
+          <div class="preview-head">
+            <h2>ผัง</h2>
+            <span class="chip" id="stateChip" data-state="busy">กำลังตรวจ…</span>
+            <button class="btn ghost sm" id="btnRelayout" type="button">จัดตำแหน่งใหม่</button>
+            <button class="btn ghost sm" id="btnPng" type="button" title="บันทึกผังทั้งหมดเป็นไฟล์รูป PNG">บันทึกเป็นรูป</button>
+          </div>
+          <div class="diagram-wrap">
+            <svg id="diagram" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ผัง topology"></svg>
+            <div class="zoom-controls" role="group" aria-label="ซูมผัง">
+              <button type="button" class="zoom-btn" id="btnZoomOut" aria-label="ซูมออก" title="ซูมออก">−</button>
+              <span id="zoomLabel" title="ระดับการซูม">100%</span>
+              <button type="button" class="zoom-btn" id="btnZoomIn" aria-label="ซูมเข้า" title="ซูมเข้า">+</button>
+              <button type="button" class="zoom-fit" id="btnZoomFit" title="แสดงทั้งหมดพอดีจอ (ดับเบิลคลิกพื้นหลังก็ได้)">พอดี</button>
+            </div>
+          </div>
+          <p class="hint center">คลิกอุปกรณ์หรือสายเพื่อไปที่แถวนั้น · ลากกล่องเพื่อย้าย (<kbd>Ctrl</kbd>+<kbd>Z</kbd> ย้อนกลับ) · ลูกกลิ้งเมาส์เพื่อซูม · ลากพื้นหลังเพื่อเลื่อนดู</p>
+          <ul class="problems" id="problems"></ul>
+        </div>
+      </aside>
+    </div>
+
+    <div class="actionbar">
+      <span id="designSummary"></span>
+      <div class="btn-row">
+        <button class="btn ghost" id="btnExport" type="button" title="ดาวน์โหลดฟอร์มนี้เป็นไฟล์ topology.json (ใช้กับ python eve_builder.py ได้ หรือนำเข้าใหม่ในหน้าเริ่มต้น)">ส่งออก JSON</button>
+        <a class="btn primary" href="#deploy">ไปขั้นตอนสร้าง lab →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── สร้าง lab ───────── -->
+  <section class="view" id="view-deploy" hidden>
+    <div class="page-head">
+      <h1 id="deployTitle">สร้าง lab</h1>
+      <p id="deploySummary"></p>
+    </div>
+
+    <div class="notice warn" id="deployWarn" hidden>
+      <div class="notice-body" id="deployWarnText"></div>
+    </div>
+
+    <div class="lab-state" id="labState" data-state="idle" hidden><span class="dot"></span><span id="labStateText"></span></div>
+
+    <div class="deploy-grid">
+      <article class="card action-card" id="cardBuild">
+        <h2>สร้างใหม่</h2>
+        <p>สร้าง lab ตามฟอร์มตั้งแต่ต้น เหมาะกับ lab ที่ยังไม่มีบน EVE-NG</p>
+        <label class="check"><input type="checkbox" id="recreate"> ลบ lab ชื่อเดิมก่อน (ถ้ามี)</label>
+        <label class="check"><input type="checkbox" id="startAfter"> เปิดอุปกรณ์ทั้งหมดหลังสร้าง</label>
+        <button class="btn primary" id="btnBuild" type="button">สร้าง lab</button>
+      </article>
+
+      <article class="card action-card" id="cardSync">
+        <h2>เพิ่มลง lab เดิม</h2>
+        <p>เพิ่มเฉพาะอุปกรณ์ สาย และข้อความที่ยังไม่มี ไม่ลบหรือแก้ของเดิม ตำแหน่งที่ลากไว้ใน EVE-NG ไม่หาย</p>
+        <button class="btn secondary" id="btnSync" type="button">เพิ่มลง lab เดิม</button>
+      </article>
+
+      <article class="card action-card">
+        <h2>ตรวจสอบ</h2>
+        <p>เทียบ lab บน EVE-NG กับฟอร์มว่าอุปกรณ์และสายครบตรงกันหรือไม่ (อ่านอย่างเดียว)</p>
+        <button class="btn secondary" id="btnVerify" type="button">ตรวจสอบ</button>
+      </article>
+
+      <article class="card action-card">
+        <h2>เปิด / ปิดอุปกรณ์</h2>
+        <p>สั่งเปิดหรือปิดทุกอุปกรณ์ใน lab นี้</p>
+        <div class="btn-row">
+          <button class="btn secondary" id="btnStart" type="button">เปิดทั้งหมด</button>
+          <button class="btn danger-soft" id="btnStop" type="button">ปิดทั้งหมด</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="card result-card">
+      <h2>ผลลัพธ์</h2>
+      <div id="verifySummary" class="verify-summary"></div>
+      <table class="verify-table" id="verifyTable" hidden>
+        <thead><tr><th></th><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+        <tbody id="verifyBody"></tbody>
+      </table>
+      <pre id="log">ยังไม่มีการทำงาน</pre>
+    </div>
+  </section>
+
+  <!-- ───────── Lab ที่มีอยู่ ───────── -->
+  <section class="view" id="view-labs" hidden>
+    <div class="page-head">
+      <h1>Lab ที่มีอยู่</h1>
+      <p>จัดการ lab และโฟลเดอร์บน EVE-NG โหลดเข้าฟอร์มเพื่อแก้ไข สร้างโฟลเดอร์ใหม่ หรือลบสิ่งที่ไม่ใช้แล้ว</p>
+    </div>
+    <div class="card">
+      <div class="labs-toolbar">
+        <input type="search" id="labSearch" placeholder="ค้นหา lab หรือโฟลเดอร์" autocomplete="off">
+        <button class="btn secondary" id="btnListLabs" type="button">ดึงรายการ</button>
+        <button class="btn secondary" id="btnNewFolder" type="button">+ โฟลเดอร์ใหม่</button>
+      </div>
+      <ul class="lab-list" id="labList"><li class="empty">กด “ดึงรายการ” เพื่อดู lab ทั้งหมดบน EVE-NG</li></ul>
+      <div class="labs-footer">
+        <span id="labSelected">ยังไม่ได้เลือก lab</span>
+        <div class="btn-row">
+          <button class="btn danger-soft" id="btnDeleteLab" type="button" disabled>ลบ lab</button>
+          <button class="btn primary" id="btnImport" type="button" disabled>โหลดเข้าฟอร์ม →</button>
+        </div>
+      </div>
+      <p class="hint">การลบเป็นแบบถาวร กู้คืนไม่ได้ และระบบจะไม่ลบถ้ายังมีอุปกรณ์ทำงานอยู่ การดึงรายการจะ login เข้า EVE-NG ชั่วคราว หน้าเว็บ EVE ที่เปิดค้างไว้อาจหลุดและต้อง login ใหม่</p>
+    </div>
+  </section>
+
+  <!-- ───────── เชื่อมต่อ ───────── -->
+  <section class="view" id="view-connect" hidden>
+    <div class="page-head">
+      <h1>เชื่อมต่อ EVE-NG</h1>
+      <p>รหัสผ่านอ่านจากไฟล์ <code>.env</code> บนเครื่องนี้ ไม่ผ่านเบราว์เซอร์</p>
+    </div>
+    <div class="card connect-card">
+      <div class="form-grid">
+        <label class="field">EVE-NG host<input id="host" autocomplete="off"></label>
+        <label class="field">Username<input id="username" autocomplete="off" disabled></label>
+      </div>
+      <p class="hint">หมายเหตุ: username ถูกล็อกเป็น <code>evebuilder</code> เพราะ EVE-NG Community มี user ได้แค่ 2 คน — <code>admin</code> เก็บไว้เปิดหน้า EVE GUI ส่วน <code>evebuilder</code> ใช้กับเครื่องมือนี้ เพื่อไม่ให้ session ชนกัน (เปลี่ยนได้ที่ <code>EVE_USERNAME</code> ใน eve_builder.py)</p>
+      <label class="check"><input type="checkbox" id="https"> ใช้ HTTPS</label>
+      <div class="btn-row">
+        <button class="btn primary" id="btnTest" type="button">ทดสอบการเชื่อมต่อ</button>
+        <span id="testResult" class="test-result"></span>
+      </div>
+      <p class="hint" id="imageNote">เมื่อเชื่อมต่อสำเร็จ ระบบจะดึงรายการ IOL image ที่ติดตั้งบน EVE-NG มาให้เลือกในหน้าออกแบบ</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- บันทึกการทำงาน -->
+<aside class="drawer" id="logDrawer" aria-label="บันทึกการทำงาน" hidden>
+  <div class="drawer-head"><h2>บันทึกการทำงาน</h2><button class="btn ghost sm" id="btnLogClose" type="button">ปิด</button></div>
+  <div class="drawer-body" id="logList"><p class="empty">ยังไม่มีรายการ</p></div>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog id="promptDialog">
+  <h2>Prompt สำหรับ AI</h2>
+  <pre id="promptView"></pre>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn secondary" value="close">ปิด</button>
+    <button class="btn primary" id="btnPromptCopy" value="close">คัดลอก</button>
+  </form>
+</dialog>
+
+<dialog id="confirmDialog">
+  <h2 id="confirmTitle">ยืนยัน</h2>
+  <p id="confirmMsg"></p>
+  <label class="field confirm-type" id="confirmTypeWrap" hidden>
+    <span id="confirmTypeLabel"></span>
+    <input id="confirmType" autocomplete="off" spellcheck="false">
+  </label>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn secondary" value="cancel">ยกเลิก</button>
+    <button class="btn primary" id="confirmOk" value="ok">ตกลง</button>
+  </form>
+</dialog>
+
+<dialog id="bulkDialog">
+  <h2>เพิ่มหลายเครื่อง</h2>
+  <label class="field">ชนิด
+    <select id="bulkType">
+      <option value="router">Router</option>
+      <option value="switch">Switch (L2)</option>
+      <option value="vpcs">PC (VPCS)</option>
+    </select>
+  </label>
+  <div class="form-grid">
+    <label class="field">ชื่อขึ้นต้น<input id="bulkPrefix" value="R" autocomplete="off" spellcheck="false"></label>
+    <label class="field">จำนวน<input id="bulkCount" type="number" min="1" max="20" value="4"></label>
+  </div>
+  <p class="hint" id="bulkPreview"></p>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn secondary" value="cancel">ยกเลิก</button>
+    <button class="btn primary" id="bulkOk" value="ok">เพิ่ม</button>
+  </form>
+</dialog>
+
+<dialog id="folderDialog">
+  <h2>สร้างโฟลเดอร์ใหม่</h2>
+  <label class="field">สร้างไว้ใน<select id="folderParent"></select></label>
+  <label class="field">ชื่อโฟลเดอร์<input id="folderName" autocomplete="off" placeholder="เช่น OSPF-Practice"></label>
+  <p class="hint" id="folderHint">ใช้ตัวอักษรอังกฤษ ตัวเลข ช่องว่าง - _ และ . ได้</p>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn secondary" value="cancel">ยกเลิก</button>
+    <button class="btn primary" id="folderOk" value="ok" disabled>สร้าง</button>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
